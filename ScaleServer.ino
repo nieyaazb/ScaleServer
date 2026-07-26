@@ -1,5 +1,5 @@
 // ScaleServer.ino
-// ESP32-C3 networked platform scale
+// ESP32-C6 networked platform scale (Waveshare ESP32-C6-Zero-M)
 //   - 2x load cells -> single HX711 -> weight readout
 //   - Config + calibration stored as human-readable JSON on LittleFS (/config.json)
 //   - Always-on Access Point for configuration; optionally joins home Wi-Fi (Station)
@@ -13,7 +13,10 @@
 //   - ArduinoJson by Benoit Blanchon (v7)
 //   - ESPAsyncWebServer by ESP32Async
 //   - AsyncTCP by ESP32Async
-// Board: "ESP32C3 Dev Module" (esp32 core by Espressif Systems, v3.x)
+// Board: "Waveshare ESP32-C6-Zero" (esp32 core by Espressif Systems, v3.3.5+)
+// NOTE: this board uses the ESP32-C6's native USB (no UART bridge chip) —
+// "USB CDC On Boot" must be Enabled in the Tools menu for Serial.println()
+// to show up over USB.
 // See README.md for wiring, board manager URL, and full setup steps.
 
 #include <WiFi.h>
@@ -27,18 +30,26 @@
 
 // ---- Boot-mode button ---------------------------------------------------
 // Default: reuse the onboard BOOT button (GPIO9) so no extra wiring is needed.
-// NOTE: GPIO9 is a strapping pin used to enter UART download mode when held
-// low across an EN/RESET pulse. Reading it in software after boot (as done
-// below) is safe and standard practice; just don't hold it through a manual
-// EN reset if you want to avoid accidentally entering the bootloader.
-// Wire an external momentary switch to a different GPIO instead if you'd
-// rather not use GPIO9 for this.
+// Confirmed via Waveshare's ESP32-C6-Zero pinout diagram, which labels GP9
+// "BOOT". On ESP32-C3 boards GPIO9 is a strapping pin used to enter UART
+// download mode when held low across an EN/RESET pulse; ESP32-C6 is expected
+// to follow the same general strapping-pin pattern, but that exact
+// register-level behavior hasn't been independently verified against
+// Espressif's ESP32-C6 technical reference manual. Reading it in software
+// after boot (as done below) is standard practice either way; just don't
+// hold it through a manual EN reset if you want to avoid accidentally
+// entering the bootloader. Wire an external momentary switch to a different
+// GPIO instead if you'd rather not use GPIO9 for this.
 #ifndef BUTTON_PIN
 #define BUTTON_PIN 9
 #endif
 
-// Onboard status LED, if your board has one wired to GPIO8 (many "Super Mini"
-// boards do). Comment out the blink calls below if you don't have one.
+// Onboard status LED. On the Waveshare ESP32-C6-Zero, GPIO8 drives an
+// onboard WS2812 addressable RGB LED (confirmed via Waveshare's pinout
+// diagram: "WS2812 RGB LED used pin: GP8, DIN") — NOT a plain on/off LED.
+// This sketch only reserves the pin below and never drives it; if you add
+// status-LED code, you'll need a NeoPixel-style library (e.g.
+// Adafruit_NeoPixel) rather than plain digitalWrite() HIGH/LOW.
 #ifndef STATUS_LED_PIN
 #define STATUS_LED_PIN 8
 #endif
@@ -237,7 +248,7 @@ void setupRoutes() {
 void setup() {
   Serial.begin(115200);
   delay(300);
-  Serial.println("\n[boot] ESP32-C3 networked scale starting");
+  Serial.println("\n[boot] ESP32-C6 networked scale starting");
 
   pinMode(BUTTON_PIN, INPUT_PULLUP);
 #ifdef STATUS_LED_PIN

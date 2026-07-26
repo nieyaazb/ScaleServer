@@ -1,8 +1,12 @@
-# ESP32-C3 Networked Scale
+# ESP32-C6 Networked Scale (Waveshare ESP32-C6-Zero)
 
 A Wi-Fi scale for two 2-ton load cells on a single HX711, with a browser dashboard
 (text + circular dial), a setup/calibration page, and config stored as a
 human-readable JSON file on LittleFS.
+
+Targets the **Waveshare ESP32-C6-Zero-M** board (ESP32-C6FH8, RISC-V, 8MB
+flash, Wi-Fi 6 + BLE5 + 802.15.4). Previously targeted a generic ESP32-C3
+board; see git history if you need the old C3 instructions/pinout.
 
 ## 1. Arduino IDE setup
 
@@ -11,12 +15,17 @@ human-readable JSON file on LittleFS.
 https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json
 ```
 Add this in File -> Preferences -> "Additional Board Manager URLs", then in
-Tools -> Board -> Boards Manager install **esp32 by Espressif Systems** (v3.x).
+Tools -> Board -> Boards Manager install **esp32 by Espressif Systems**,
+**v3.3.5 or newer** (this version is recommended for this board's native USB
+CDC support to work by default).
 
-**Board selection:** Tools -> Board -> ESP32 Arduino -> **ESP32C3 Dev Module**.
-For "Super Mini"/generic ESP32-C3 boards also set:
-- USB CDC On Boot: **Enabled** (so Serial shows up over the USB port)
-- Flash Size: 4MB (adjust if yours differs)
+**Board selection:** Tools -> Board -> ESP32 Arduino -> **Waveshare ESP32-C6-Zero**.
+This board package ships that exact entry — do **not** pick the generic
+"ESP32C6 Dev Module", use the Waveshare-specific one. Also set:
+- USB CDC On Boot: **Enabled** — this board has no UART-to-USB bridge chip,
+  it uses the ESP32-C6's native USB port directly, so this setting is what
+  makes `Serial.println()` show up over USB. (`printf()` works either way.)
+- Flash Size: 8MB (matches the ESP32-C6FH8's onboard flash)
 - Partition Scheme: Default (or "Default w/ SPIFFS" — either works, LittleFS
   is created on the SPIFFS/data partition automatically at first boot)
 
@@ -32,14 +41,22 @@ For "Super Mini"/generic ESP32-C3 boards also set:
 
 ## 2. Wiring
 
-| Signal | ESP32-C3 GPIO | Notes |
+> **⚠️ Double-check before wiring.** The pin numbers below were confirmed
+> against Waveshare's official ESP32-C6-Zero pinout diagram
+> (docs.waveshare.com/ESP32-C6-Zero) as of 2026-07-26 — GP9 is silkscreened/
+> labeled as the BOOT button and GP8 as the onboard WS2812 RGB LED's data
+> pin on that diagram. Board revisions and the "-M" variant *should* share
+> the same pinout, but confirm against your own unit's silkscreen before
+> applying power, since we don't have your specific board in hand.
+
+| Signal | ESP32-C6-Zero GPIO | Notes |
 |---|---|---|
 | HX711 DOUT | GPIO4 | change via `HX711_DOUT_PIN` in `scale.h` |
 | HX711 SCK  | GPIO5 | change via `HX711_SCK_PIN` in `scale.h` |
 | HX711 VCC  | 3V3 | |
 | HX711 GND  | GND | |
 | Config button | GPIO9 (onboard BOOT button) | see caveat below |
-| Status LED (optional) | GPIO8 | many "Super Mini" boards have one built in here |
+| Status LED (optional) | GPIO8 | this is the onboard **WS2812 addressable RGB LED**'s DIN pin on this board — see note below |
 
 **Two load cells on one HX711:** wire both cells' E+/E- (excitation) together
 and both S+/S- (signal) together into the HX711's A+/A- inputs — this is the
@@ -48,15 +65,29 @@ accuracy use a proper summing/junction board matched to your cells rather than
 bare parallel wiring, since small cell-to-cell imbalances otherwise show up as
 corner-loading error.
 
-**About GPIO9 as the config button:** it's the onboard BOOT button on most
-ESP32-C3 boards, and it's a strapping pin used to enter the UART bootloader
-when held low across an EN/RESET pulse. Reading it in software after boot
-(what this sketch does) is completely normal and is how most ESP32-C3 dev
-board "boot buttons" get reused as general inputs. The only thing to avoid is
-holding it down while power-cycling via the EN pin if you want to be sure you
-land in the sketch rather than the bootloader. If that bothers you, wire an
-external button to a plain GPIO (e.g. GPIO6) and change `BUTTON_PIN` in
-`ScaleServer.ino`.
+**About GPIO9 as the config button:** it's the onboard BOOT button on the
+ESP32-C6-Zero (confirmed via Waveshare's pinout diagram, which labels this
+pin "BOOT"), and on ESP32-C3 boards GPIO9 plays the same strapping-pin role
+(held low across an EN/RESET pulse to enter the UART bootloader). RISC-V
+ESP32-C-series chips generally follow this same strapping pattern, and
+reading the pin in software after boot (what this sketch does) is standard
+practice — but we have not independently verified the exact strapping
+behavior against Espressif's ESP32-C6 technical reference manual, so treat
+this as "very likely fine, same as C3" rather than fully confirmed at the
+register level. The only thing to avoid is holding it down while
+power-cycling via the EN pin if you want to be sure you land in the sketch
+rather than the bootloader. If that bothers you, wire an external button to
+a plain GPIO (e.g. GPIO6) and change `BUTTON_PIN` in `ScaleServer.ino`.
+
+**About GPIO8 as the status LED:** on the ESP32-C6-Zero this pin drives an
+onboard **WS2812 addressable RGB LED**, not a simple LED — Waveshare's
+pinout diagram explicitly labels it "WS2812 RGB LED used pin: GP8, DIN".
+Unlike a plain LED, you can't just `digitalWrite()` it on/off; driving it
+needs a NeoPixel-style single-wire protocol (e.g. the Adafruit_NeoPixel
+library). This sketch currently only reserves the pin (`pinMode` as
+`OUTPUT`) and never actually blinks it, so this only matters if you add
+status-LED code later — at that point, swap in a NeoPixel library call
+instead of `digitalWrite()`.
 
 ## 3. Sketch layout
 

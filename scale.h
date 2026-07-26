@@ -7,7 +7,11 @@
 #include "config.h"
 
 // ---- Pin assignment (change if you wire the HX711 to different GPIOs) ----
-// Safe general-purpose pins on ESP32-C3 (avoid 2, 8, 9 which are strapping pins).
+// Plain general-purpose pins on the Waveshare ESP32-C6-Zero — confirmed via
+// Waveshare's pinout diagram that GP4/GP5 have no onboard LED/button/boot
+// function attached (unlike GP8, the onboard WS2812 RGB LED, and GP9, the
+// onboard BOOT button — avoid those two for new wiring). Double-check
+// against your board's silkscreen before wiring; see README.md.
 #ifndef HX711_DOUT_PIN
 #define HX711_DOUT_PIN 4
 #endif
