@@ -1,0 +1,26 @@
+.DS_Store
+
+# Arduino IDE / arduino-cli build artifacts
+build/
+*.hex
+*.bin
+*.elf
+*.map
+*.o
+*.a
+.pio/
+.pioenvs/
+.piolibdeps/
+
+# ESP32/ESP-IDF
+sdkconfig
+sdkconfig.old
+
+# Editor/IDE
+.vscode/
+.idea/
+*~
+
+# Secrets / local overrides
+secrets.h
+*.local
