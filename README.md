@@ -97,11 +97,23 @@ ScaleServer/
   config.h          Config struct, load/save as pretty-printed JSON on LittleFS
   scale.h           HX711 wrapper: read, tare, calibrate
   pages.h           Dashboard + setup page HTML/CSS/JS (served from flash, PROGMEM)
+  assets/           Source images (not compiled in directly; see below)
 ```
 Open the folder in Arduino IDE — the extra `.h` files show up as tabs
 alongside `ScaleServer.ino`. No separate "upload LittleFS data" step is
 needed; only `/config.json` lives on LittleFS and the sketch creates it
-itself on first boot with sensible defaults.
+itself on first boot with sensible defaults. `assets/` isn't picked up by
+Arduino IDE (it only looks at `.ino`/`.h`/`.cpp` files) — it's just where the
+source images live for reference/re-editing.
+
+**Dashboard watermark:** the dial on `/` shows the Recyclemania icon
+(`assets/recyclemania-icon-128.png`, cropped from the full lockup in
+`assets/recyclemania-logo.png`) centered behind the needle at 15% opacity.
+It's embedded as a base64 `data:` URI in the `LOGO_DATA_URI` constant near
+the top of `INDEX_HTML` in `pages.h` — if you swap the logo, re-crop/resize
+the replacement to a small square PNG (128×128 is plenty for a watermark),
+base64-encode it (`base64 -i yourfile.png`), and paste the result into that
+constant as `data:image/png;base64,<...>`.
 
 ## 4. First boot / normal use
 
