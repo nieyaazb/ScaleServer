@@ -44,17 +44,21 @@ const char INDEX_HTML[] PROGMEM = R"HTMLPAGE(
 <div class="wrap">
   <div class="card">
     <div class="dial-wrap">
-    <svg id="dialSvg" viewBox="0 0 240 200" width="280" height="233">
-      <path d="M 20 130 A 100 100 0 1 1 220 130" fill="none" stroke="#24304a" stroke-width="16" stroke-linecap="round"/>
-      <path id="arcFill" d="M 20 130 A 100 100 0 1 1 220 130" fill="none" stroke="#4fd1c5" stroke-width="16" stroke-linecap="round"
-            stroke-dasharray="330" stroke-dashoffset="330"/>
+    <svg id="dialSvg" viewBox="0 0 240 216" width="280" height="252">
+      <!-- Arc endpoints (49.3,200.7) and (190.7,200.7) are the needle's own
+           0%/100% positions (radius 100, angles -135deg/+135deg about the
+           120,130 pivot) - the arc spans exactly the needle's sweep range,
+           so the fill boundary and the needle always point at the same spot. -->
+      <path d="M 49.3 200.7 A 100 100 0 1 1 190.7 200.7" fill="none" stroke="#24304a" stroke-width="16" stroke-linecap="round"/>
+      <path id="arcFill" d="M 49.3 200.7 A 100 100 0 1 1 190.7 200.7" fill="none" stroke="#4fd1c5" stroke-width="16" stroke-linecap="round"
+            stroke-dasharray="471.24" stroke-dashoffset="471.24"/>
       <g id="ticks"></g>
       <g id="needle" style="transform-origin:120px 130px;">
         <line x1="120" y1="130" x2="120" y2="45" stroke="#e8ecf4" stroke-width="4" stroke-linecap="round"/>
         <circle cx="120" cy="130" r="7" fill="#e8ecf4"/>
       </g>
-      <text x="20" y="148" fill="#7c8aa5" font-size="11">0</text>
-      <text id="maxLabel" x="205" y="148" fill="#7c8aa5" font-size="11" text-anchor="end">max</text>
+      <text x="70" y="186" fill="#7c8aa5" font-size="11" text-anchor="middle">0</text>
+      <text id="maxLabel" x="170" y="186" fill="#7c8aa5" font-size="11" text-anchor="middle">max</text>
     </svg>
     </div>
     <div id="weight">--</div>
@@ -144,7 +148,9 @@ function applyReading(w) {
   // Gauge sweeps 270 degrees, needle starts pointing at -135deg (zero) up to +135deg (max)
   let deg = -135 + pct * 270;
   needle.style.transform = 'rotate(' + deg + 'deg)';
-  let circumference = 330; // approx path length used for stroke-dasharray above
+  // Arc path is a true 270deg sweep at radius 100: length = 100 * (270*PI/180).
+  // Matches the needle's angle exactly, so the fill always ends at the needle tip.
+  let circumference = 471.24;
   arcFill.setAttribute('stroke-dashoffset', circumference - pct * circumference);
 }
 
